@@ -1,0 +1,28 @@
+- hosts: all
+  become: true
+  tasks:
+    - name: Restreindre SSH et couper le mot de passe
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        block: |
+          AllowUsers ansible@IP_SRV_ANSIBLE
+          Match User ansible
+              PasswordAuthentication no
+      notify: restart sshd
+
+    - name: Verrouiller le mot de passe ansible
+      ansible.builtin.user:
+        name: ansible
+        password_lock: true
+
+    - name: Installer bind
+      ansible.builtin.dnf:
+        name: bind
+        state: present
+        update_cache: true
+
+  handlers:
+    - name: restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
