@@ -1,5 +1,7 @@
 - hosts: all
   become: true
+  roles:
+    - bind
   tasks:
     - name: Restreindre SSH et couper le mot de passe
       ansible.builtin.blockinfile:

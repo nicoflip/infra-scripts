@@ -1,0 +1,11 @@
+options {
+	listen-on port 53 { any; };
+	directory "/var/named";
+	allow-query { any; };
+	recursion yes;
+	forwarders { {% for ns in dns_redirecteurs %}{{ ns }}; {% endfor %}};
+	forward only;
+	dnssec-validation no;
+};
+zone "." IN { type hint; file "named.ca"; };
+include "/etc/named.rfc1912.zones";

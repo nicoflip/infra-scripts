@@ -1,0 +1,54 @@
+- name: Installer bind
+  ansible.builtin.dnf:
+    name: bind
+    state: present
+
+- name: Récupérer le DNS de l'hôte
+  ansible.builtin.set_fact:
+    dns_redirecteurs: "{{ ansible_facts['dns']['nameservers'] }}"
+
+- name: Config bind avec rollback
+  block:
+    - name: Sauvegarde
+      ansible.builtin.copy:
+        src: /etc/named.conf
+        dest: /etc/named.conf.bak
+        remote_src: true
+
+    - name: Déployer le template
+      ansible.builtin.template:
+        src: named.conf.j2
+        dest: /etc/named.conf
+        owner: root
+        group: named
+        mode: "0640"
+
+    - name: Vérifier la config
+      ansible.builtin.command: named-checkconf /etc/named.conf
+      changed_when: false
+
+    - name: Redémarrer bind
+      ansible.builtin.service:
+        name: named
+        state: restarted
+        enabled: true
+
+  rescue:
+    - name: Rollback
+      ansible.builtin.copy:
+        src: /etc/named.conf.bak
+        dest: /etc/named.conf
+        remote_src: true
+        owner: root
+        group: named
+        mode: "0640"
+
+    - name: Redémarrer avec l'ancienne config
+      ansible.builtin.service:
+        name: named
+        state: restarted
+
+    - name: Signaler l'échec
+      ansible.builtin.fail:
+        msg: "Config invalide, rollback effectué"
+
